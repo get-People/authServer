@@ -13,15 +13,22 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = __importDefault(require("express"));
-const http_1 = __importDefault(require("http"));
+const https_1 = __importDefault(require("https"));
+const fs_1 = __importDefault(require("fs"));
 const sanitize_1 = __importDefault(require("./utils/sanitize"));
 const authValidator_1 = require("./validation/authValidator");
 const user_1 = __importDefault(require("./models/user"));
 const databaseConnection_1 = __importDefault(require("./utils/databaseConnection"));
 const app = (0, express_1.default)();
+const privatekey = fs_1.default.readFileSync('./security/privatekey.pem');
+const certificate = fs_1.default.readFileSync('./security/certificate.pem');
+const credentials = {
+    key: privatekey,
+    cert: certificate,
+};
 (0, databaseConnection_1.default)();
 app.use(express_1.default.json());
-const server = http_1.default.createServer(app);
+const server = https_1.default.createServer(credentials, app);
 app.post("/register", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         Object.keys(req.body).forEach(key => {

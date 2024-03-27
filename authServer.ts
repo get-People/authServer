@@ -1,16 +1,24 @@
 import express from 'express';
-import http from 'http';
+import https from 'https';
+import fs from 'fs';
 import purify from "./utils/sanitize";
 import { authValidator } from './validation/authValidator';
 import User from './models/user';
 import connectToDatabase from './utils/databaseConnection';
 const app = express();
 
+const privatekey = fs.readFileSync('./security/privatekey.pem')
+const certificate = fs.readFileSync('./security/certificate.pem')
+
+const credentials = {
+    key: privatekey,
+    cert: certificate,
+};
 connectToDatabase()
 
 app.use(express.json())
 
-const server = http.createServer(app)
+const server = https.createServer(credentials, app)
 
 app.post("/register", async (req, res) => {
     try {
