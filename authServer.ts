@@ -3,7 +3,10 @@ import http from 'http';
 import purify from "./utils/sanitize";
 import { authValidator } from './validation/authValidator';
 import User from './models/user';
+import connectToDatabase from './utils/databaseConnection';
 const app = express();
+
+connectToDatabase()
 
 app.use(express.json())
 
@@ -41,5 +44,5 @@ app.post("/login", (req,res) => {
 })
 
 server.listen(process.env.PORT as string,() => {
-     console.log(`server is listening on port ${process.env.PORT}`)
+     console.log(`auth server is listening on port ${process.env.PORT}`)
  })
