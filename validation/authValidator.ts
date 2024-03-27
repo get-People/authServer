@@ -8,7 +8,7 @@ export const authValidator = Joi.object({
         country_id: Joi.string().required(),
         city_id: Joi.string().required(),
         street_id: Joi.string().required(),
-    }).required(),
-    age: Joi.number().min(18).max(120).required(),
+    }).optional(),
+    age: Joi.number().min(18).max(120).optional(),
 })
 

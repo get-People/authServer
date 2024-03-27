@@ -20,21 +20,40 @@ app.use(express.json())
 
 const server = https.createServer(credentials, app)
 
+app.get("/check", (req, res) => {
+    try {
+        res.send("Authentication server is running!");
+    }
+    catch (error: any) {
+        res.status(500).send(error.message)
+    }
+})
 app.post("/register", async (req, res) => {
     try {
         Object.keys(req.body).forEach(key => {
-            req.body[key] = purify.sanitize(req.body[key])
-        })
+            req.body[key] = purify.sanitize(req.body[key]);
+        });
         const { error } = authValidator.validate(req.body);
         if (error) return res.status(400).send(error.details[0].message);
 
+        const user = await User.findOne({ email: req.body.email }) 
+        if (user) {
+            return res.status(409).send({message: "you already registered! you can login"})
+        }
         const newUser = await User.create(req.body);
-        res.status(200).send(newUser);
-    } catch (error) {
-        console.log(error)
-        res.status(500).send({ errorMessage: "register fail" })
+
+        res.status(200).send({ message: "User registered successfully", userId: newUser._id });
+    } catch (error: any) {
+        console.error(error);
+
+        if (error.name === 'ValidationError') {
+            return res.status(400).send(error.message);
+        } else {
+            res.status(500).send({ errorMessage: "Registration failed" });
+        }
     }
-})
+});
+
 
 app.post("/login", (req,res) => {
     try {

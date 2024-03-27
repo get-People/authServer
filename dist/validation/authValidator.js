@@ -13,6 +13,6 @@ exports.authValidator = joi_1.default.object({
         country_id: joi_1.default.string().required(),
         city_id: joi_1.default.string().required(),
         street_id: joi_1.default.string().required(),
-    }).required(),
-    age: joi_1.default.number().min(18).max(120).required(),
+    }).optional(),
+    age: joi_1.default.number().min(18).max(120).optional(),
 });

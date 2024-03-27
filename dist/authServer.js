@@ -29,6 +29,14 @@ const credentials = {
 (0, databaseConnection_1.default)();
 app.use(express_1.default.json());
 const server = https_1.default.createServer(credentials, app);
+app.get("/check", (req, res) => {
+    try {
+        res.send("Authentication server is running!");
+    }
+    catch (error) {
+        res.status(500).send(error.message);
+    }
+});
 app.post("/register", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         Object.keys(req.body).forEach(key => {
@@ -37,12 +45,21 @@ app.post("/register", (req, res) => __awaiter(void 0, void 0, void 0, function* 
         const { error } = authValidator_1.authValidator.validate(req.body);
         if (error)
             return res.status(400).send(error.details[0].message);
+        const user = yield user_1.default.findOne({ email: req.body.email });
+        if (user) {
+            return res.status(409).send({ message: "you already registered! you can login" });
+        }
         const newUser = yield user_1.default.create(req.body);
-        res.status(200).send(newUser);
+        res.status(200).send({ message: "User registered successfully", userId: newUser._id });
     }
     catch (error) {
-        console.log(error);
-        res.status(500).send({ errorMessage: "register fail" });
+        console.error(error);
+        if (error.name === 'ValidationError') {
+            return res.status(400).send(error.message);
+        }
+        else {
+            res.status(500).send({ errorMessage: "Registration failed" });
+        }
     }
 }));
 app.post("/login", (req, res) => {
