@@ -27,6 +27,15 @@ const userSchema = new mongoose_1.default.Schema({
         trim: true,
         lowercase: true,
         unique: true,
+    },
+    password: {
+        type: String,
+        required: true,
+        minLength: 4,
+    },
+    isAdmin: {
+        type: Boolean,
+        required: true,
     }
 });
 const User = mongoose_1.default.model('user', userSchema);
