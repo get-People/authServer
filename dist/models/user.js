@@ -25,7 +25,17 @@ const userSchema = new mongoose_1.default.Schema({
         minLength: 15,
         maxLength: 35,
         trim: true,
-        lowercase: true
+        lowercase: true,
+        unique: true,
+    },
+    password: {
+        type: String,
+        required: true,
+        minLength: 4,
+    },
+    isAdmin: {
+        type: Boolean,
+        required: true,
     }
 });
 const User = mongoose_1.default.model('user', userSchema);
