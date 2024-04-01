@@ -101,11 +101,10 @@ app.post("/forgot-password", async (req, res) => {
     }) 
     const { email,mainServerUrl } = req.body;
     const user = await User.findOne({ email: email });
-    console.log(user)
     if (!user) return res.status(200).send({ message: "check your email" });
     const resetToken = crypto.randomBytes(20).toString("hex");
     user.resetPasswordToken = resetToken;
-    user.resetPasswordExpires = Date.now() + 3600000; // expires in 1 hour
+    user.resetPasswordExpires = new Date(Date.now() + 3600000); // expires in 1 hour
     user.save();
 
     const resetUrl = `http://${mainServerUrl}/reset-password/${resetToken}`;
@@ -124,6 +123,29 @@ app.post("/forgot-password", async (req, res) => {
   } catch (error) {}
 });
 
+app.post("/reset-password/:token", async (req, res) => {
+  try {
+    const { token } = req.params;
+    const { password } = req.body;
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const user = await User.findOne({
+      resetPasswordToken: token,
+      resetPasswordExpires: {
+        $gt: Date.now()
+      }
+    })
+    if (!user) return res.status(400).send({ error: "Password reset token is invalid or has expired" });  
+    user.password = hashedPassword;
+    user.resetPasswordToken = undefined;
+    user.resetPasswordExpires = undefined;
+    await user.save();
+    return res.status(200).send({ message: "password updated successfully" });
+   }
+  catch (error) {
+    console.error(error);
+    res.status(500).send({error: "reset password failed"});
+  }
+ })
 server.listen(process.env.PORT as string,() => {
      console.log(`auth server is listening on port ${process.env.PORT}`)
  })
