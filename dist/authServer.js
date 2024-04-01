@@ -15,12 +15,14 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = __importDefault(require("express"));
 const https_1 = __importDefault(require("https"));
 const fs_1 = __importDefault(require("fs"));
+const crypto_1 = __importDefault(require("crypto"));
 const bcrypt_1 = __importDefault(require("bcrypt"));
 const sanitize_1 = __importDefault(require("./utils/sanitize"));
 const authValidator_1 = require("./validation/authValidator");
+const jwt_1 = require("./utils/jwt");
 const user_1 = __importDefault(require("./models/user"));
 const databaseConnection_1 = __importDefault(require("./utils/databaseConnection"));
-const jwt_1 = require("./utils/jwt");
+const sendEmail_1 = __importDefault(require("./utils/sendEmail"));
 const app = (0, express_1.default)();
 const privatekey = fs_1.default.readFileSync(process.env.PRIVATE_KEY);
 const certificate = fs_1.default.readFileSync(process.env.CERTIFICATE);
@@ -35,14 +37,6 @@ const cookieOptions = {
     httpOnly: true,
     secure: true,
 };
-app.get("/check", (req, res) => {
-    try {
-        res.send("Authentication server is running!");
-    }
-    catch (error) {
-        res.status(500).send(error.message);
-    }
-});
 app.post("/register", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         Object.keys(req.body).forEach((key) => {
@@ -96,6 +90,35 @@ app.post("/login", (req, res) => __awaiter(void 0, void 0, void 0, function* () 
         console.log(error);
         res.status(500).send({ errorMessage: "login failed" });
     }
+}));
+app.post("/forgot-password", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        Object.keys(req.body).forEach(key => {
+            req.body[key] = sanitize_1.default.sanitize(req.body[key]);
+        });
+        const { email, mainServerUrl } = req.body;
+        const user = yield user_1.default.findOne({ email: email });
+        console.log(user);
+        if (!user)
+            return res.status(200).send({ message: "check your email" });
+        const resetToken = crypto_1.default.randomBytes(20).toString("hex");
+        user.resetPasswordToken = resetToken;
+        user.resetPasswordExpires = Date.now() + 3600000; // expires in 1 hour
+        user.save();
+        const resetUrl = `http://${mainServerUrl}/reset-password/${resetToken}`;
+        let message = `<h1> you requested a reset password</h1> 
+    <p>Click this <a href="${resetUrl}">link</a> to reset your password</p>`;
+        const isEmailSent = yield (0, sendEmail_1.default)(email, "password reset request", message);
+        if (isEmailSent) {
+            return res
+                .status(200)
+                .send({ message: "check your email for reset password link" });
+        }
+        else {
+            return res.status(500).send({ error: "Email could not be sent" });
+        }
+    }
+    catch (error) { }
 }));
 server.listen(process.env.PORT, () => {
     console.log(`auth server is listening on port ${process.env.PORT}`);
