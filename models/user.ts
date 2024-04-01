@@ -1,3 +1,4 @@
+import { number } from 'joi'
 import mongoose from 'mongoose'
 
 const userSchema = new mongoose.Schema({
@@ -32,7 +33,9 @@ const userSchema = new mongoose.Schema({
     isAdmin: {
         type: Boolean,
         required: true,
-    }
+    },
+    resetPasswordToken: String,
+    resetPasswordExpires: Date,
 })
 
 const User = mongoose.model('user', userSchema)

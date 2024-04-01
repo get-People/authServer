@@ -10,8 +10,9 @@ type Token = {
 
 export const generateAccessToken = ({ firstName,lastName,email,isAdmin}: Token) => {
     return jwt.sign({firstName,lastName,email,isAdmin},
-        process.env.ACCESS_USER_TOKEN as string,
+        process.env.ACCESS_TOKEN as string,
         { expiresIn: '2 days' })
 }
-export const generateRefreshToken= () => {}
+export const generateRefreshToken = () => { }
+
 
