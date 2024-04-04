@@ -23,6 +23,7 @@ const jwt_1 = require("./utils/jwt");
 const sendEmail_1 = __importDefault(require("./utils/sendEmail"));
 const db_1 = __importDefault(require("./DB/db"));
 const app = (0, express_1.default)();
+app.use(express_1.default.json());
 const db = new db_1.default();
 const privatekey = fs_1.default.readFileSync(process.env.PRIVATE_KEY);
 const certificate = fs_1.default.readFileSync(process.env.CERTIFICATE);
@@ -30,7 +31,6 @@ const credentials = {
     key: privatekey,
     cert: certificate,
 };
-app.use(express_1.default.json());
 const server = https_1.default.createServer(credentials, app);
 const cookieOptions = {
     httpOnly: true,
@@ -71,7 +71,7 @@ app.post("/login", (req, res) => __awaiter(void 0, void 0, void 0, function* () 
         if (!user)
             return res.status(400).send({ message: "User not found" });
         const authCheck = yield bcrypt_1.default.compare(req.body.password, user.password);
-        const token = (0, jwt_1.generateAccessToken)(req.body);
+        const token = (0, jwt_1.generateAccessToken)(user);
         if (authCheck) {
             res.cookie("access token", token, cookieOptions).status(200).send({
                 message: "access authorized",
@@ -83,7 +83,7 @@ app.post("/login", (req, res) => __awaiter(void 0, void 0, void 0, function* () 
         }
     }
     catch (error) {
-        console.log(error);
+        console.error(error);
         res.status(500).send({ errorMessage: "login failed" });
     }
 }));

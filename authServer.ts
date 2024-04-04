@@ -5,7 +5,7 @@ import bcrypt from 'bcrypt';
 import crypto from 'crypto';
 import purify from "./utils/sanitize";
 import { authValidatorRegistration, authValidatorLogin } from './validation/authValidator';
-import { generateAccessToken } from './utils/jwt';
+import { generateToken } from './utils/auth';
 
 import sendEmail from './utils/sendEmail';
 import DB from './DB/db';
@@ -41,7 +41,7 @@ app.post("/register", async (req, res) => {
     if (user)  return res.status(409).send({ message: "you already registered! login instead" });
     
     const newUser = await db.addUser(req.body)
-    const token = generateAccessToken(newUser)
+    const token = generateToken(newUser)
 
     res.cookie("access token",
         token,
@@ -70,7 +70,7 @@ app.post("/login", async (req, res) => {
    
 
     const authCheck = await bcrypt.compare(req.body.password, user.password);
-    const token = generateAccessToken(req.body);
+    const token = generateToken(user);
     if (authCheck) {
         
     res.cookie("access token",
@@ -84,29 +84,33 @@ app.post("/login", async (req, res) => {
       }
     
   } catch (error) {
-    console.log(error);
+    console.error(error);
     res.status(500).send({ errorMessage: "login failed" });
   }
 });
 
 app.post("/forgot-password", async (req, res) => {
   try {
-    Object.keys(req.body).forEach(key => {
-      req.body[key] = purify.sanitize(req.body[key])
-    }) 
-    const { email,mainServerUrl } = req.body;
+    Object.keys(req.body).forEach((key) => {
+      req.body[key] = purify.sanitize(req.body[key]);
+    });
+    const { email, mainServerUrl } = req.body;
     const user = await db.findUserByEmail(email);
     if (!user) return res.status(200).send({ message: "check your email" });
     const resetToken = crypto.randomBytes(20).toString("hex");
     user.resetPasswordToken = resetToken;
-    user.resetPasswordExpires = new Date(Date.now() + 3600000); // expires in 1 hour
+    user.resetPasswordExpires = new Date(Date.now() + 3600000); // convert to string
     user.save();
 
     const resetUrl = `http://${mainServerUrl}/reset-password/${resetToken}`;
-    const message = `<h1> you requested a reset password</h1> 
+    const message = `<h1> you requested a reset password</h1>
     <p>Click this <a href="${resetUrl}">link</a> to reset your password</p>`;
-    
-    const isEmailSent = await sendEmail(email, "password reset request" , message);
+
+    const isEmailSent = await sendEmail(
+      email,
+      "password reset request",
+      message
+    );
 
     if (isEmailSent) {
       return res
@@ -115,7 +119,9 @@ app.post("/forgot-password", async (req, res) => {
     } else {
       return res.status(500).send({ error: "Email could not be sent" });
     }
-  } catch (error) {}
+  } catch (error) {
+   console.error(error)
+  }
 });
 
 app.post("/reset-password/:token", async (req, res) => {
