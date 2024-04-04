@@ -13,6 +13,8 @@ export const generateAccessToken = ({ firstName,lastName,email,isAdmin}: Token) 
         process.env.ACCESS_TOKEN as string,
         { expiresIn: '2 days' })
 }
-export const generateRefreshToken = () => { }
+export const generateRefreshToken = () => { 
+    
+}
 
 

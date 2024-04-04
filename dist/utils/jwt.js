@@ -9,5 +9,6 @@ const generateAccessToken = ({ firstName, lastName, email, isAdmin }) => {
     return jsonwebtoken_1.default.sign({ firstName, lastName, email, isAdmin }, process.env.ACCESS_TOKEN, { expiresIn: '2 days' });
 };
 exports.generateAccessToken = generateAccessToken;
-const generateRefreshToken = () => { };
+const generateRefreshToken = () => {
+};
 exports.generateRefreshToken = generateRefreshToken;

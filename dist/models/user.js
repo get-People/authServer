@@ -38,7 +38,7 @@ const userSchema = new mongoose_1.default.Schema({
         required: true,
     },
     resetPasswordToken: String,
-    resetPasswordExpires: Number,
+    resetPasswordExpires: Date,
 });
 const User = mongoose_1.default.model('user', userSchema);
 exports.default = User;
