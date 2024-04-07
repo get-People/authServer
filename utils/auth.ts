@@ -8,15 +8,16 @@ type User = {
     password?: string,
     isAdmin?: Boolean,
 }
-
-export const generateToken = (user: User) => {
-    const {firstName, lastName, email, isAdmin} = user;
-    return jwt.sign({firstName, lastName, email, isAdmin},
-        process.env.ACCESS_TOKEN as string,
-        { expiresIn: '2 days' })
+export enum tokenType{
+    ACCESS = 'access',
+    REFRESH= 'refresh',
 }
-export const generateRefreshToken = (user: User) => { 
-   
+export const generateToken = (user: User, type: tokenType) => {
+    const token = type === tokenType.ACCESS ? process.env.ACCESS_TOKEN as string : process.env.REFRESH_TOKEN as string;
+    const {firstName, lastName, email, isAdmin} = user;
+    return jwt.sign({ firstName, lastName, email, isAdmin },
+        token, 
+        { expiresIn: '2 days' })
 }
 
 

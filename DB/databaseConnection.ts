@@ -1,6 +1,5 @@
 import mongoose from "mongoose"; 
-
-const connectToDatabase = () => {
+export const connectToMongoDB = () => {
   
   if (!process.env.MONGODB_URL) {
     throw new Error("MONGODB_URL must be defined");
@@ -10,5 +9,3 @@ const connectToDatabase = () => {
     .then(() => console.log("Connected to MongoDB"))
     .catch((err) => console.error("Error connecting to MongoDB", err));
 };
-
-export default connectToDatabase

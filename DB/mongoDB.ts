@@ -1,6 +1,6 @@
 import bcrypt from 'bcrypt';
 import User from '../models/user';
-import connectToDatabase from './databaseConnection';
+import { connectToMongoDB } from './databaseConnection';
 
 
 type User = {
@@ -29,7 +29,7 @@ class DB{
             return DB.instance
         }
         try {
-            connectToDatabase();
+            connectToMongoDB();
             DB.instance = this;   
         } catch (error) {
             console.error(error)

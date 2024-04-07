@@ -5,15 +5,16 @@ import bcrypt from 'bcrypt';
 import crypto from 'crypto';
 import purify from "./utils/sanitize";
 import { authValidatorRegistration, authValidatorLogin } from './validation/authValidator';
-import { generateToken } from './utils/auth';
-
+import { generateToken ,tokenType} from './utils/auth';
+import RedisDB from './DB/redisDB'
 import sendEmail from './utils/sendEmail';
-import DB from './DB/db';
+import DB from './DB/mongoDB';
 
 const app = express();
 app.use(express.json());
 
 const db = new DB();
+const refreshTokens = new RedisDB()
 const privatekey = fs.readFileSync(process.env.PRIVATE_KEY as string)
 const certificate = fs.readFileSync(process.env.CERTIFICATE as string)
 
@@ -41,19 +42,23 @@ app.post("/register", async (req, res) => {
     if (user)  return res.status(409).send({ message: "you already registered! login instead" });
     
     const newUser = await db.addUser(req.body)
-    const token = generateToken(newUser)
+    const accessToken = generateToken(newUser, tokenType.ACCESS)
+    const refreshToken = generateToken(newUser,tokenType.REFRESH)
+    
 
-    res.cookie("access token",
-        token,
-      cookieOptions).status(200).send({
+    res.cookie("access token", accessToken, cookieOptions)
+       .cookie("refresh token", refreshToken, cookieOptions)
+       .status(200)
+       .send({
           message: "register successfully",
           user: newUser
-      })   
+       });
   } catch (error) {
     console.error(error);
     res.status(500).send({ errorMessage: "Registration failed" });
-    }
+  }
 });
+
 
 app.post("/login", async (req, res) => {
   try {
@@ -70,12 +75,13 @@ app.post("/login", async (req, res) => {
    
 
     const authCheck = await bcrypt.compare(req.body.password, user.password);
-    const token = generateToken(user);
+    const accessToken = generateToken(user, tokenType.ACCESS);
+    const refreshToken = generateToken(user, tokenType.REFRESH);
     if (authCheck) {
-        
-    res.cookie("access token",
-        token,
-      cookieOptions).status(200).send({
+
+      res.cookie("access token", accessToken, cookieOptions)
+        .cookie("refresh token", refreshToken, cookieOptions)
+        .status(200).send({
           message: "access authorized",
           user
       })

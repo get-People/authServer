@@ -14,18 +14,30 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const bcrypt_1 = __importDefault(require("bcrypt"));
 const user_1 = __importDefault(require("../models/user"));
-const databaseConnection_1 = __importDefault(require("./databaseConnection"));
+const databaseConnection_1 = require("./databaseConnection");
+function hashPassword(password) {
+    return __awaiter(this, void 0, void 0, function* () {
+        try {
+            const saltRounds = yield bcrypt_1.default.genSalt(10);
+            const hashedPassword = yield bcrypt_1.default.hash(password, saltRounds);
+            return hashedPassword;
+        }
+        catch (error) {
+            throw error;
+        }
+    });
+}
 class DB {
     constructor() {
         if (DB.instance) {
             return DB.instance;
         }
         try {
-            (0, databaseConnection_1.default)();
+            (0, databaseConnection_1.connectToMongoDB)();
             DB.instance = this;
         }
         catch (error) {
-            console.log(error);
+            console.error(error);
             console.error("Error connecting to the database:", error);
         }
     }
@@ -64,17 +76,5 @@ class DB {
             }
         });
     }
-}
-function hashPassword(password) {
-    return __awaiter(this, void 0, void 0, function* () {
-        try {
-            const saltRounds = yield bcrypt_1.default.genSalt(10);
-            const hashedPassword = yield bcrypt_1.default.hash(password, saltRounds);
-            return hashedPassword;
-        }
-        catch (error) {
-            throw error;
-        }
-    });
 }
 exports.default = DB;

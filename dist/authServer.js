@@ -19,12 +19,14 @@ const bcrypt_1 = __importDefault(require("bcrypt"));
 const crypto_1 = __importDefault(require("crypto"));
 const sanitize_1 = __importDefault(require("./utils/sanitize"));
 const authValidator_1 = require("./validation/authValidator");
-const jwt_1 = require("./utils/jwt");
+const auth_1 = require("./utils/auth");
+const redisDB_1 = __importDefault(require("./DB/redisDB"));
 const sendEmail_1 = __importDefault(require("./utils/sendEmail"));
-const db_1 = __importDefault(require("./DB/db"));
+const mongoDB_1 = __importDefault(require("./DB/mongoDB"));
 const app = (0, express_1.default)();
 app.use(express_1.default.json());
-const db = new db_1.default();
+const db = new mongoDB_1.default();
+const refreshTokens = new redisDB_1.default();
 const privatekey = fs_1.default.readFileSync(process.env.PRIVATE_KEY);
 const certificate = fs_1.default.readFileSync(process.env.CERTIFICATE);
 const credentials = {
@@ -48,8 +50,12 @@ app.post("/register", (req, res) => __awaiter(void 0, void 0, void 0, function* 
         if (user)
             return res.status(409).send({ message: "you already registered! login instead" });
         const newUser = yield db.addUser(req.body);
-        const token = (0, jwt_1.generateAccessToken)(newUser);
-        res.cookie("access token", token, cookieOptions).status(200).send({
+        const accessToken = (0, auth_1.generateToken)(newUser, auth_1.tokenType.ACCESS);
+        const refreshToken = (0, auth_1.generateToken)(newUser, auth_1.tokenType.REFRESH);
+        res.cookie("access token", accessToken, cookieOptions)
+            .cookie("refresh token", refreshToken, cookieOptions)
+            .status(200)
+            .send({
             message: "register successfully",
             user: newUser
         });
@@ -71,9 +77,12 @@ app.post("/login", (req, res) => __awaiter(void 0, void 0, void 0, function* () 
         if (!user)
             return res.status(400).send({ message: "User not found" });
         const authCheck = yield bcrypt_1.default.compare(req.body.password, user.password);
-        const token = (0, jwt_1.generateAccessToken)(user);
+        const accessToken = (0, auth_1.generateToken)(user, auth_1.tokenType.ACCESS);
+        const refreshToken = (0, auth_1.generateToken)(user, auth_1.tokenType.REFRESH);
         if (authCheck) {
-            res.cookie("access token", token, cookieOptions).status(200).send({
+            res.cookie("access token", accessToken, cookieOptions)
+                .cookie("refresh token", refreshToken, cookieOptions)
+                .status(200).send({
                 message: "access authorized",
                 user
             });
@@ -89,7 +98,7 @@ app.post("/login", (req, res) => __awaiter(void 0, void 0, void 0, function* () 
 }));
 app.post("/forgot-password", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        Object.keys(req.body).forEach(key => {
+        Object.keys(req.body).forEach((key) => {
             req.body[key] = sanitize_1.default.sanitize(req.body[key]);
         });
         const { email, mainServerUrl } = req.body;
@@ -98,10 +107,10 @@ app.post("/forgot-password", (req, res) => __awaiter(void 0, void 0, void 0, fun
             return res.status(200).send({ message: "check your email" });
         const resetToken = crypto_1.default.randomBytes(20).toString("hex");
         user.resetPasswordToken = resetToken;
-        user.resetPasswordExpires = new Date(Date.now() + 3600000); // expires in 1 hour
+        user.resetPasswordExpires = new Date(Date.now() + 3600000); // convert to string
         user.save();
         const resetUrl = `http://${mainServerUrl}/reset-password/${resetToken}`;
-        const message = `<h1> you requested a reset password</h1> 
+        const message = `<h1> you requested a reset password</h1>
     <p>Click this <a href="${resetUrl}">link</a> to reset your password</p>`;
         const isEmailSent = yield (0, sendEmail_1.default)(email, "password reset request", message);
         if (isEmailSent) {
@@ -113,7 +122,9 @@ app.post("/forgot-password", (req, res) => __awaiter(void 0, void 0, void 0, fun
             return res.status(500).send({ error: "Email could not be sent" });
         }
     }
-    catch (error) { }
+    catch (error) {
+        console.error(error);
+    }
 }));
 app.post("/reset-password/:token", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {

@@ -28,7 +28,7 @@ const sendEmail = (to, subject, message) => __awaiter(void 0, void 0, void 0, fu
         return true;
     }
     catch (error) {
-        console.log(error);
+        console.error(error);
         return false;
     }
 });
