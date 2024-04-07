@@ -3,6 +3,7 @@ import https from 'https';
 import fs from 'fs';
 import bcrypt from 'bcrypt';
 import crypto from 'crypto';
+import cookieParser from 'cookie-parser'
 import purify from "./utils/sanitize";
 import { authValidatorRegistration, authValidatorLogin } from './validation/authValidator';
 import { generateToken ,tokenType} from './utils/auth';
@@ -12,6 +13,7 @@ import DB from './DB/mongoDB';
 
 const app = express();
 app.use(express.json());
+app.use(cookieParser());
 
 const db = new DB();
 const refreshTokens = new RedisDB()
@@ -39,25 +41,31 @@ app.post("/register", async (req, res) => {
     if (error) return res.status(400).send(error.details[0].message);
 
     const user = await db.findUserByEmail(req.body.email);
-    if (user)  return res.status(409).send({ message: "you already registered! login instead" });
-    
-    const newUser = await db.addUser(req.body)
-    const accessToken = generateToken(newUser, tokenType.ACCESS)
-    const refreshToken = generateToken(newUser,tokenType.REFRESH)
-    
+    if (user)
+      return res
+        .status(409)
+        .send({ message: "you already registered! login instead" });
 
-    res.cookie("access token", accessToken, cookieOptions)
-       .cookie("refresh token", refreshToken, cookieOptions)
-       .status(200)
-       .send({
-          message: "register successfully",
-          user: newUser
-       });
+    const newUser = await db.addUser(req.body);
+    const accessToken = generateToken(newUser, tokenType.ACCESS);
+    const refreshToken = generateToken(newUser, tokenType.REFRESH);
+    
+    await refreshTokens?.db?.set(newUser.email, refreshToken);
+    console.log(await refreshTokens?.db?.get(newUser?.email));
+    res
+      .cookie("access token", accessToken, cookieOptions)
+      .cookie("refresh token", refreshToken, cookieOptions)
+      .status(200)
+      .send({
+        message: "register successfully",
+        user: newUser,
+      });
   } catch (error) {
     console.error(error);
     res.status(500).send({ errorMessage: "Registration failed" });
   }
 });
+
 
 
 app.post("/login", async (req, res) => {
@@ -78,6 +86,8 @@ app.post("/login", async (req, res) => {
     const accessToken = generateToken(user, tokenType.ACCESS);
     const refreshToken = generateToken(user, tokenType.REFRESH);
     if (authCheck) {
+
+      await refreshTokens?.db?.set(user.id, refreshToken);
 
       res.cookie("access token", accessToken, cookieOptions)
         .cookie("refresh token", refreshToken, cookieOptions)

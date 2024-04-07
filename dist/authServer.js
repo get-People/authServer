@@ -17,6 +17,7 @@ const https_1 = __importDefault(require("https"));
 const fs_1 = __importDefault(require("fs"));
 const bcrypt_1 = __importDefault(require("bcrypt"));
 const crypto_1 = __importDefault(require("crypto"));
+const cookie_parser_1 = __importDefault(require("cookie-parser"));
 const sanitize_1 = __importDefault(require("./utils/sanitize"));
 const authValidator_1 = require("./validation/authValidator");
 const auth_1 = require("./utils/auth");
@@ -25,6 +26,7 @@ const sendEmail_1 = __importDefault(require("./utils/sendEmail"));
 const mongoDB_1 = __importDefault(require("./DB/mongoDB"));
 const app = (0, express_1.default)();
 app.use(express_1.default.json());
+app.use((0, cookie_parser_1.default)());
 const db = new mongoDB_1.default();
 const refreshTokens = new redisDB_1.default();
 const privatekey = fs_1.default.readFileSync(process.env.PRIVATE_KEY);
@@ -39,6 +41,7 @@ const cookieOptions = {
     secure: true,
 };
 app.post("/register", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    var _a, _b;
     try {
         Object.keys(req.body).forEach((key) => {
             req.body[key] = sanitize_1.default.sanitize(req.body[key]);
@@ -48,16 +51,21 @@ app.post("/register", (req, res) => __awaiter(void 0, void 0, void 0, function* 
             return res.status(400).send(error.details[0].message);
         const user = yield db.findUserByEmail(req.body.email);
         if (user)
-            return res.status(409).send({ message: "you already registered! login instead" });
+            return res
+                .status(409)
+                .send({ message: "you already registered! login instead" });
         const newUser = yield db.addUser(req.body);
         const accessToken = (0, auth_1.generateToken)(newUser, auth_1.tokenType.ACCESS);
         const refreshToken = (0, auth_1.generateToken)(newUser, auth_1.tokenType.REFRESH);
-        res.cookie("access token", accessToken, cookieOptions)
+        yield ((_a = refreshTokens === null || refreshTokens === void 0 ? void 0 : refreshTokens.db) === null || _a === void 0 ? void 0 : _a.set(newUser.email, refreshToken));
+        console.log(yield ((_b = refreshTokens === null || refreshTokens === void 0 ? void 0 : refreshTokens.db) === null || _b === void 0 ? void 0 : _b.get(newUser === null || newUser === void 0 ? void 0 : newUser.email)));
+        res
+            .cookie("access token", accessToken, cookieOptions)
             .cookie("refresh token", refreshToken, cookieOptions)
             .status(200)
             .send({
             message: "register successfully",
-            user: newUser
+            user: newUser,
         });
     }
     catch (error) {
@@ -66,6 +74,7 @@ app.post("/register", (req, res) => __awaiter(void 0, void 0, void 0, function* 
     }
 }));
 app.post("/login", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    var _c;
     try {
         Object.keys(req.body).forEach((key) => {
             req.body[key] = sanitize_1.default.sanitize(req.body[key]);
@@ -80,6 +89,7 @@ app.post("/login", (req, res) => __awaiter(void 0, void 0, void 0, function* () 
         const accessToken = (0, auth_1.generateToken)(user, auth_1.tokenType.ACCESS);
         const refreshToken = (0, auth_1.generateToken)(user, auth_1.tokenType.REFRESH);
         if (authCheck) {
+            yield ((_c = refreshTokens === null || refreshTokens === void 0 ? void 0 : refreshTokens.db) === null || _c === void 0 ? void 0 : _c.set(user.id, refreshToken));
             res.cookie("access token", accessToken, cookieOptions)
                 .cookie("refresh token", refreshToken, cookieOptions)
                 .status(200).send({

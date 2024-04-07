@@ -3,18 +3,19 @@ import Redis from 'ioredis'
 
 class RedisDB{
     static instance: RedisDB;
+    public db: Redis | undefined;
     constructor() {
 
         if (RedisDB.instance) {
             return RedisDB.instance;
         }
         try {
-            const redis = new Redis();
+            this.db = new Redis();
 
-            redis.on('connect', () => {
+            this.db.on('connect', () => {
                 console.log('Connected to Redis!');
             });
-            redis.on('error', (err) => {    
+            this.db.on('error', (err) => {    
                 console.log('Redis Client Error', err);
             });
             RedisDB.instance = this;

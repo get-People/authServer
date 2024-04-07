@@ -10,11 +10,11 @@ class RedisDB {
             return RedisDB.instance;
         }
         try {
-            const redis = new ioredis_1.default();
-            redis.on('connect', () => {
+            this.db = new ioredis_1.default();
+            this.db.on('connect', () => {
                 console.log('Connected to Redis!');
             });
-            redis.on('error', (err) => {
+            this.db.on('error', (err) => {
                 console.log('Redis Client Error', err);
             });
             RedisDB.instance = this;
